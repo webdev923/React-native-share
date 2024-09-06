@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableMap;
 
 import cl.json.ShareFile;
 
@@ -27,6 +29,17 @@ public class InstagramShare extends SingleShareIntent {
     public void open(ReadableMap options) throws ActivityNotFoundException {
             super.open(options);
 
+            if (!ShareIntent.hasValidKey("type", options)) {
+                Log.e("RNShare", "No type provided");
+                return;
+            }
+            String type = options.getString("type");
+
+            if (type.startsWith("text")) {
+               this.openInstagramIntentChooserForText(chooserTitle);
+                return;
+            }
+
             if (!ShareIntent.hasValidKey("url", options)) {
                 Log.e("RNShare", "No url provided");
                 return;
@@ -39,19 +52,10 @@ public class InstagramShare extends SingleShareIntent {
                 return;
             }
 
-
-            if (!ShareIntent.hasValidKey("type", options)) {
-                Log.e("RNShare", "No type provided");
-                return;
-            }
-            String type = options.getString("type");
+            String extension = this.getExtension(type);
             Boolean isImage = type.startsWith("image");
 
-            if (isImage) {
-                this.openInstagramIntentChooserForImage(url, chooserTitle);
-            } else {
-                super.openIntentChooser();
-            }
+            this.openInstagramIntentChooserForMedia(url, chooserTitle, isImage, extension);
     }
 
     protected void openInstagramUrlScheme(String url) {
@@ -61,18 +65,40 @@ public class InstagramShare extends SingleShareIntent {
             super.openIntentChooser();
     }
 
-    protected void openInstagramIntentChooserForImage(String url, String chooserTitle) {
+    private String getExtension(String url) {
+            String[] ext = url.split("/");
+            return ext[ext.length -1];
+    }
+
+    protected void openInstagramIntentChooserForText(String chooserTitle) {
+            this.getIntent().setPackage(PACKAGE);
+            this.getIntent().setType("text/plain");
+            this.getIntent().setAction(Intent.ACTION_SEND);
+            super.openIntentChooser();
+    }
+
+    protected void openInstagramIntentChooserForMedia(String url, String chooserTitle, Boolean isImage, String extension) {
         Boolean shouldUseInternalStorage = ShareIntent.hasValidKey("useInternalStorage", options) && options.getBoolean("useInternalStorage");
-        ShareFile shareFile = new ShareFile(url, "image/jpeg", "image", shouldUseInternalStorage, this.reactContext);
+        ShareFile shareFile = isImage 
+            ? new ShareFile(url, "image/" + extension, "image", shouldUseInternalStorage, this.reactContext) 
+            : new ShareFile(url, "video/" + extension, "video", shouldUseInternalStorage, this.reactContext);
         Uri uri = shareFile.getURI();
 
         Intent feedIntent = new Intent(Intent.ACTION_SEND);
-        feedIntent.setType("image/*");
+
+        if (isImage) {
+            feedIntent.setType("image/*");
+        } else {
+            feedIntent.setType("video/*");
+        }
+
         feedIntent.putExtra(Intent.EXTRA_STREAM, uri);
         feedIntent.setPackage(PACKAGE);
 
         Intent storiesIntent = new Intent("com.instagram.share.ADD_TO_STORY");
-        storiesIntent.setDataAndType(uri, "jpg");
+
+        storiesIntent.setDataAndType(uri, extension);
+
         storiesIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         storiesIntent.setPackage(PACKAGE);
 
@@ -83,6 +109,11 @@ public class InstagramShare extends SingleShareIntent {
         Activity activity = this.reactContext.getCurrentActivity();
         activity.grantUriPermission(PACKAGE, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         this.reactContext.startActivity(chooserIntent);
+
+        WritableMap reply = Arguments.createMap();
+        reply.putBoolean("success", true);
+        reply.putString("message", this.getIntent().getPackage());
+        TargetChosenReceiver.callbackResolve(reply);
     }
 
     @Override

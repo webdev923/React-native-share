@@ -15,6 +15,8 @@ export enum Social {
   Telegram = 'telegram',
   Snapchat = 'snapchat',
   Messenger = 'messenger',
+  Viber = 'viber',
+  Discord = 'discord',
 }
 
 export enum ShareAsset {
@@ -41,14 +43,16 @@ export interface ActivityItem {
 
 export interface ActivityItemSource {
   placeholderItem: ActivityItem;
-  item: { [key in ActivityType]?: ActivityItem | null | undefined };
-  subject?: { [key in ActivityType]?: string };
-  dataTypeIdentifier?: { [key in ActivityType]?: string };
-  thumbnailImage?: { [key in ActivityType]?: string };
+  item: { [key in ActivityTypeItemSource]?: ActivityItem | null | undefined };
+  subject?: { [key in ActivityTypeItemSource]?: string };
+  dataTypeIdentifier?: { [key in ActivityTypeItemSource]?: string };
+  thumbnailImage?: { [key in ActivityTypeItemSource]?: string };
   linkMetadata?: LinkMetadata;
 }
 
 interface BaseShareSingleOptions {
+  appId?: string;
+  urls?: string[];
   url?: string;
   type?: string;
   filename?: string;
@@ -72,11 +76,11 @@ interface BaseSocialStoriesShareSingleOptions extends Omit<BaseShareSingleOption
 
 export interface InstagramStoriesShareSingleOptions extends BaseSocialStoriesShareSingleOptions {
   social: Social.InstagramStories;
+  appId: string;
 }
 
 export interface FacebookStoriesShareSingleOptions extends BaseSocialStoriesShareSingleOptions {
   social: Social.FacebookStories;
-  method: Exclude<ShareAsset, ShareAsset.BackgroundVideo>;
   appId: string;
 }
 
@@ -94,13 +98,14 @@ export interface ShareOptions {
   subject?: string;
   email?: string;
   recipient?: string;
-  excludedActivityTypes?: ActivityType[];
+  excludedActivityTypes?: ActivityType[] | string[];
   failOnCancel?: boolean;
   showAppsToView?: boolean;
   filename?: string;
   filenames?: string[];
   saveToFiles?: boolean;
   activityItemSources?: ActivityItemSource[];
+  isNewTask?: boolean;
 }
 
 export type ActivityType =
@@ -121,6 +126,8 @@ export type ActivityType =
   | 'print'
   | 'saveToCameraRoll'
   | 'markupAsPDF'; // iOS 11 or late
+
+export type ActivityTypeItemSource = ActivityType | string;
 
 export interface ShareSingleResult {
   message: string;

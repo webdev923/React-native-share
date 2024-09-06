@@ -12,21 +12,30 @@
 @implementation InstagramShare
     RCT_EXPORT_MODULE();
 - (void)shareSingle:(NSDictionary *)options
-    failureCallback:(RCTResponseErrorBlock)failureCallback
-    successCallback:(RCTResponseSenderBlock)successCallback {
+    reject:(RCTPromiseRejectBlock)reject
+    resolve:(RCTPromiseResolveBlock)resolve {
     
     NSLog(@"Try open view");
-
-    NSURL * fileURL = [NSURL URLWithString: options[@"url"]];
-    AVURLAsset* videoAsset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
-    CMTime videoDuration = videoAsset.duration;
-    float videoDurationSeconds = CMTimeGetSeconds(videoDuration);
-
-    NSLog(@"Video duration: %f seconds for file %@", videoDurationSeconds, videoAsset.URL.absoluteString);
-        
+    
     NSURL * shareURL;
-    // Instagram doesn't allow sharing videos longer than 60 seconds on iOS anymore. (next button is not responding, trim is unavailable)
-    if (videoDurationSeconds <= 60.0f) {
+    float videoDurationSeconds = 0.0f;
+    NSString* url = options[@"url"];
+    if (url) {
+        NSURL * fileURL = [NSURL URLWithString: options[@"url"]];
+        AVURLAsset* videoAsset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
+        CMTime videoDuration = videoAsset.duration;
+        float videoDurationSeconds = CMTimeGetSeconds(videoDuration);
+        
+        NSLog(@"Video duration: %f seconds for file %@", videoDurationSeconds, videoAsset.URL.absoluteString);
+    } else {
+        //this will send message directly to instagram DM with plain text
+        shareURL = [NSURL URLWithString:[NSString stringWithFormat:@"instagram://sharesheet?text=%@", options[@"message"]]];
+    }
+    
+    if (shareURL) {
+        NSLog(@"url is already available, no need to do anything");
+    } else if (videoDurationSeconds <= 60.0f) {
+        // Instagram doesn't allow sharing videos longer than 60 seconds on iOS anymore. (next button is not responding, trim is unavailable)
         NSString *phIdentifier= [options[@"url"] stringByReplacingOccurrencesOfString:@"ph://" withString:@""];
         NSString * urlString = [NSString stringWithFormat:@"instagram://library?LocalIdentifier=%@", phIdentifier];
         shareURL = [NSURL URLWithString:urlString];
@@ -36,7 +45,7 @@
     
     if ([[UIApplication sharedApplication] canOpenURL: shareURL]) {
         [[UIApplication sharedApplication] openURL: shareURL];
-        successCallback(@[]);
+        resolve(@[@true, @""]);
     } else {
         // Cannot open instagram
         NSString *stringURL = @"https://itunes.apple.com/app/instagram/id389801252";
@@ -49,13 +58,13 @@
         NSError *error = [NSError errorWithDomain:@"com.rnshare" code:1 userInfo:userInfo];
         
         NSLog(@"%@", errorMessage);
-        failureCallback(error);
+        reject(@"com.rnshare",@"Not installed",error);
     } 
 }
 
 - (void)shareSingleImage:(NSDictionary *)options
-         failureCallback:(RCTResponseErrorBlock)failureCallback
-         successCallback:(RCTResponseSenderBlock)successCallback {
+         reject:(RCTPromiseRejectBlock)reject
+         resolve:(RCTPromiseResolveBlock)resolve {
     
     UIImage *image;
     NSURL *imageURL = [RCTConvert NSURL:options[@"url"]];
@@ -66,23 +75,23 @@
                                                  options:(NSDataReadingOptions)0
                                                    error:&error];
             if (!data) {
-                failureCallback(error);
+                reject(@"com.rnshare",@"no data",error);
                 return;
             }
             image = [UIImage imageWithData: data];
             [self savePictureAndOpenInstagram: image
-                              failureCallback: failureCallback
-                              successCallback: successCallback];
+                              reject: reject
+                              resolve: resolve];
         }
     } else {
         [[UIApplication sharedApplication] openURL: [NSURL URLWithString:@"instagram://camera"]];
-        successCallback(@[]);
+        resolve(@[@true, @""]);
     }
 }
 
 -(void)savePictureAndOpenInstagram:(UIImage *)base64Image
-                   failureCallback:(RCTResponseErrorBlock)failureCallback
-                   successCallback:(RCTResponseSenderBlock)successCallback {
+                   reject:(RCTPromiseRejectBlock)reject
+                   resolve:(RCTPromiseResolveBlock)resolve {
     
     NSURL *URL = [self fileURLWithTemporaryImageData:UIImageJPEGRepresentation(base64Image, 0.9)];
     __block PHAssetChangeRequest *_mChangeRequest = nil;
@@ -103,15 +112,15 @@
                 if (@available(iOS 10.0, *)) {
                     [[UIApplication sharedApplication] openURL:instagramURL options:@{} completionHandler:NULL];
                 }
-                if (successCallback != NULL) {
-                    successCallback(@[]);
+                if (resolve != NULL) {
+                    resolve(@[@true, @""]);
                 }
             }
         }
         else {
             //Error while writing
-            if (failureCallback != NULL) {
-                failureCallback(error);
+            if (reject != NULL) {
+                reject(@"com.rnshare",@"error",error);
             }
         }
     }];

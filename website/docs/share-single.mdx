@@ -41,23 +41,34 @@ Or with `async/await`:
   }
 ```
 
+*Note that in the case of a user closing the share sheet without sharing, an error will be thrown. It is up to you to handle this error, i.e.:
+
+```js
+   try {
+       const shareResponse = await Share.shareSingle(shareOptions);
+   } catch (error) {
+       // handle error
+   }
+```
+
 ## Supported Options
 
 You can pass the option that will be handled by the native code, similar to `Share.open`.
 
-| Name               |  Type   | Description                                                                                                                                      | Optional | Android | iOS | Windows |
-| :----------------- | :-----: | :----------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ | :-- | :------ |
-| url                | string  | URL you want to share                                                                                                                            | ✅       | ✅      | ✅  | ❓      |
-| type               | string  | File mime type (required for sharing file with `INSTAGRAM`)                                                                                                                                  | ✅       | ✅      | ✅  | ❓      |
-| filename           | string  | Custom file name for email attachment                                                                                                            | ✅       | ✅      | ✅  | ❓      |
-| message            | string  | Message sent to the share activity                                                                                                               | ✅       | ✅      | ✅  | ❓      |
-| title              | string  | Title sent to the share activity                                                                                                                 | ✅       | ✅      | ✅  | ❓      |
-| subject            | string  | Subject sent when sharing to email                                                                                                               | ✅       | ✅      | ✅  | ❓      |
-| email              | string  | Email of addressee                                                                                                                               | ✅       | ✅      | ✅  | ❓      |
-| recipient          | string  | Phone number of SMS recipient                                                                                                                    | ✅       | ✅      | 🚫  | 🚫      |
-| social             | string  | supported social apps: [List](#static-values-for-social)                                                                                         | 🚫       | ✅      | ✅  | ❓      |
-| forceDialog        | boolean | (optional) only android. Avoid showing dialog with buttons Just Once / Always. Useful for Instagram to always ask user if share as Story or Feed | ✅       | ✅      | ✅  | ❓      |
-| useInternalStorage | boolean | Store the temporary file in the internal storage cache (Android only)                                                                            | ✅       | ✅      | 🚫  | 🚫      |
+| Name               |   Type   | Description                                                                                                                                      | Optional | Android | iOS | Windows |
+| :----------------- | :------: | :----------------------------------------------------------------------------------------------------------------------------------------------- | :------- | :------ | :-- | :------ |
+| url                | string   | URL you want to share                                                                                                                            | ✅       | ✅      | ✅  | ❓      |
+| urls               | string[] | URL you want to share (it only works for EMAIL case)                                                                                             | ✅       | ✅      | ✅  | ❓      |
+| type               | string   | File mime type (required for sharing file with `INSTAGRAM`)                                                                                      | ✅       | ✅      | ✅  | ❓      |
+| filename           | string   | Custom file name for email attachment                                                                                                            | ✅       | ✅      | ✅  | ❓      |
+| message            | string   | Message sent to the share activity                                                                                                               | ✅       | ✅      | ✅  | ❓      |
+| title              | string   | Title sent to the share activity                                                                                                                 | ✅       | ✅      | ✅  | ❓      |
+| subject            | string   | Subject sent when sharing to email                                                                                                               | ✅       | ✅      | ✅  | ❓      |
+| email              | string   | Email of addressee                                                                                                                               | ✅       | ✅      | ✅  | ❓      |
+| recipient          | string   | Phone number of SMS recipient                                                                                                                    | ✅       | ✅      | ✅ | 🚫      |
+| social             | string   | supported social apps: [List](#supported-applications)                                                                                         | 🚫       | ✅      | ✅  | ❓      |
+| forceDialog        | boolean  | (optional) only android. Avoid showing dialog with buttons Just Once / Always. Useful for Instagram to always ask user if share as Story or Feed | ✅       | ✅      | ✅  | ❓      |
+| useInternalStorage | boolean  | Store the temporary file in the internal storage cache (Android only)                                                                            | ✅       | ✅      | 🚫  | 🚫      |
 
 **_NOTE: If both `message` and `url` are provided, `url` will be concatenated to the end of `message` to form the body of the message. If only one is provided it will be used_**
 
@@ -77,11 +88,12 @@ You can pass the option that will be handled by the native code, similar to `Sha
 | **GOOGLEPLUS**        |   ✅    | ✅  | 🚫      |
 | **EMAIL**             |   ✅    | ✅  | 🚫      |
 | **PINTEREST**         |   ✅    | 🚫  | 🚫      |
-| **SMS**               |   ✅    | 🚫  | 🚫      |
+| **SMS**               |   ✅    | ✅  | 🚫      |
 | **SNAPCHAT**          |   ✅    | 🚫  | 🚫      |
-| **MESSENGER**         |   ✅    | 🚫  | 🚫      |
+| **MESSENGER**         |   ✅    | ✅  | 🚫      |
 | **LINKEDIN**          |   ✅    | 🚫  | 🚫      |
 | **TELEGRAM**          |   ✅    | ✅  | 🚫      |
+| **VIBER**             |   ✅    | ✅  | 🚫      |
 
 ## Instagram
 
@@ -98,7 +110,8 @@ const shareOptions = {
     backgroundBottomColor: '#fefefe',
     backgroundTopColor: '#906df4',
     attributionURL: 'http://deep-link-to-app', //in beta
-    social: Share.Social.INSTAGRAM_STORIES
+    social: Share.Social.INSTAGRAM_STORIES,
+    appId: 'your_fb_app_id' // required since  Jan 2023 (see: https://developers.facebook.com/docs/instagram/sharing-to-stories/#sharing-to-stories)
 };
 
 Share.shareSingle(shareOptions);
@@ -107,6 +120,7 @@ Share.shareSingle(shareOptions);
 
 | Name  | Type     | Description | Optional |
 | :---- | :------: | :--- | :--- |
+| appId | string   | (required) facebook app ID  | ❗️required
 | backgroundImage | string   | URL you want to share | ✅
 | stickerImage | string   | URL you want to share | ✅
 | backgroundBottomColor | string   | default #837DF4 | ✅
@@ -125,6 +139,8 @@ await Share.shareSingle({
       type: 'image/*'
     });
 ```
+
+**Note:** Your app's user must accept "All Photos" when prompted about photo permissions otherwise they may get a "Something went wrong" error.
 
 
 ### Share remote videos to Instagram
@@ -226,5 +242,17 @@ Share.shareSingle({
     message: 'some message',
     url: 'some share url',
     social: Share.Social.TELEGRAM,
+})
+```
+
+## Viber
+
+### Share Intent to Viber
+```js
+Share.shareSingle({
+    title: 'Share via',
+    message: 'some message',
+    url: 'some share url',
+    social: Share.Social.VIBER,
 })
 ```

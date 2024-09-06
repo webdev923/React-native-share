@@ -57,9 +57,11 @@ public class InstagramStoriesShare extends SingleShareIntent {
         Activity activity = this.reactContext.getCurrentActivity();
 
         if (activity == null) {
-            TargetChosenReceiver.sendCallback(false, "Something went wrong");
+            TargetChosenReceiver.callbackReject("Something went wrong");
             return;
         }
+
+        this.intent.putExtra("source_application", options.getString("appId"));
 
         this.intent.putExtra("bottom_background_color", "#906df4");
         this.intent.putExtra("top_background_color", "#837DF4");
@@ -86,14 +88,16 @@ public class InstagramStoriesShare extends SingleShareIntent {
 
         if (hasBackgroundAsset) {
             String backgroundFileName = "";
+            String backgroundType = "image/jpeg";
 
             if (this.hasValidKey("backgroundImage", options)) {
                 backgroundFileName = options.getString("backgroundImage");
             } else if (this.hasValidKey("backgroundVideo", options)) {
                 backgroundFileName = options.getString("backgroundVideo");
+                backgroundType = "video/*";
             }
 
-            ShareFile backgroundAsset = new ShareFile(backgroundFileName, "image/jpeg", "background", useInternalStorage, this.reactContext);
+            ShareFile backgroundAsset = new ShareFile(backgroundFileName, backgroundType, "background", useInternalStorage, this.reactContext);
 
             this.intent.setDataAndType(backgroundAsset.getURI(), backgroundAsset.getType());
             this.intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
